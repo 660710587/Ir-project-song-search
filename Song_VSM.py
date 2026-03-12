@@ -307,3 +307,4 @@ while True:
         print(f"\n  หาผลลัพธ์ของ '{user_query}' ไม่เจออะคับ 😵‍💫")
         
     print("." * 67)
+    print("." * 67)
