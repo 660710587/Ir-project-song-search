@@ -61,7 +61,7 @@ except FileNotFoundError:
 
 
 vectorizer = TfidfVectorizer()
-df['Search_Text'] = (df['Song Title'].astype(str) + " ") * 4 + df['Lyrics'].astype(str)
+df['Search_Text'] = (df['Song Title'].astype(str) + " ") * 20 + df['Lyrics'].astype(str)
 
 tfidf_matrix = vectorizer.fit_transform(df['Search_Text'])
 
@@ -80,6 +80,8 @@ def expand_query(clean_query, top_local_docs=3, top_expansion_terms=2):
     """
     Local Context Analysis (Pseudo-Relevance Feedback)
     """
+    if len(clean_query.split()) == 1:
+        return clean_query # ถ้าหาคำเดียวเดี่ยวๆ ไม่ต้องทำ Expansion
     # 1. ค้นหาเอกสารเริ่มต้นเพื่อสร้าง Local Context
     query_vec = vectorizer.transform([clean_query])
     similarity_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
@@ -218,6 +220,38 @@ while True:
         else:
             print(f"{term:<15} | 0     | [หาไม่เจอคับ]")
     print("." * 128)
+
+    # ... (โค้ดส่วนปริ้นท์ Inverted Index ก่อนหน้านี้) ...
+    print("." * 128)
+
+    # ==========================================
+    # 🌟 โค้ดส่วน [Initial Search Results] ที่ปรับแก้แล้ว 🌟
+    # ==========================================
+    print("\n   🔍 [Initial Search Results (ก่อนทำ Query Expansion)] :")
+    init_query_vec = vectorizer.transform([clean_query])
+    init_sim = cosine_similarity(init_query_vec, tfidf_matrix).flatten()
+    top_10_init = init_sim.argsort()[-10:][::-1]
+    
+    found_init = False
+    for i, idx in enumerate(top_10_init):
+        if init_sim[idx] > 0:
+            found_init = True
+            # เปลี่ยน 'Recipe Title' เป็น 'Song Title' และเพิ่ม 'Artist'
+            title = df.iloc[idx]['Song Title']
+            artist = df.iloc[idx]['Artist']
+            print(f"      [{i+1}] {title} โดย {artist} (Score: {init_sim[idx]:.4f})")
+            
+    if not found_init:
+        print("      - ไม่พบผลลัพธ์เริ่มต้น (หาไม่เจอเลยจั้ฟ) -")
+
+    print("-" * 67)
+    # ==========================================
+
+    # จากนั้นระบบก็จะทำการค้นหาแบบทำ Query Expansion ตามปกติ
+    search_results = search_songs(clean_query, top_n=N)
+    if search_results:
+        print(f"\n  เจอเเล้ว!! {len(search_results)} เพลงที่ตรงกับคำค้นหา (หลังทำ Expansion) ===> '{user_query}' ")
+        # ... (โค้ดแสดงผลและประเมินผลตามเดิม) ...
 
     search_results = search_songs(clean_query, top_n=N)
     if search_results:
