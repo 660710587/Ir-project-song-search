@@ -81,26 +81,20 @@ def expand_query(clean_query, top_local_docs=3, top_expansion_terms=2):
     Local Context Analysis (Pseudo-Relevance Feedback)
     """
     if len(clean_query.split()) == 1:
-        return clean_query # ถ้าหาคำเดียวเดี่ยวๆ ไม่ต้องทำ Expansion
-    # 1. ค้นหาเอกสารเริ่มต้นเพื่อสร้าง Local Context
+        return clean_query
     query_vec = vectorizer.transform([clean_query])
     similarity_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
-    
-    # ดึง Index ของเอกสารที่ตรงที่สุด (top_local_docs)
+
     top_indices = similarity_scores.argsort()[-top_local_docs:][::-1]
-    
-    # [🌟 ส่วนที่แก้ไข 🌟] กรองเอาเฉพาะเอกสารที่เกี่ยวข้องจริงๆ (Score ต้องมากกว่า 0)
+
     valid_indices = [idx for idx in top_indices if similarity_scores[idx] > 0]
-    
-    # ถ้าไม่มีเอกสารที่ตรงเลย ให้คืนค่าคำเดิมกลับไป
+
     if not valid_indices:
         return clean_query
-        
-    # 2. รวมน้ำหนัก TF-IDF เฉพาะในกลุ่ม Local Context ที่ผ่านเงื่อนไข
+
     local_tfidf_sum = np.sum(tfidf_matrix[valid_indices], axis=0)
     local_tfidf_sum = np.squeeze(np.asarray(local_tfidf_sum))
-    
-    # 3. เรียงลำดับคำและสกัดคำขยาย (Expansion Terms)
+
     original_terms = set(clean_query.split())
     top_term_indices = local_tfidf_sum.argsort()[::-1]
     
@@ -114,8 +108,7 @@ def expand_query(clean_query, top_local_docs=3, top_expansion_terms=2):
         
         if len(expansion_terms) >= top_expansion_terms:
             break
-            
-    # 4. ประกอบร่าง Query เดิม เข้ากับคำขยาย
+
     if expansion_terms:
         expanded_query = clean_query + " " + " ".join(expansion_terms)
         return expanded_query
@@ -221,12 +214,9 @@ while True:
             print(f"{term:<15} | 0     | [หาไม่เจอคับ]")
     print("." * 128)
 
-    # ... (โค้ดส่วนปริ้นท์ Inverted Index ก่อนหน้านี้) ...
+
     print("." * 128)
 
-    # ==========================================
-    # 🌟 โค้ดส่วน [Initial Search Results] ที่ปรับแก้แล้ว 🌟
-    # ==========================================
     print("\n   🔍 [Initial Search Results (ก่อนทำ Query Expansion)] :")
     init_query_vec = vectorizer.transform([clean_query])
     init_sim = cosine_similarity(init_query_vec, tfidf_matrix).flatten()
@@ -236,7 +226,7 @@ while True:
     for i, idx in enumerate(top_10_init):
         if init_sim[idx] > 0:
             found_init = True
-            # เปลี่ยน 'Recipe Title' เป็น 'Song Title' และเพิ่ม 'Artist'
+
             title = df.iloc[idx]['Song Title']
             artist = df.iloc[idx]['Artist']
             print(f"      [{i+1}] {title} โดย {artist} (Score: {init_sim[idx]:.4f})")
@@ -245,13 +235,11 @@ while True:
         print("      - ไม่พบผลลัพธ์เริ่มต้น (หาไม่เจอเลยจั้ฟ) -")
 
     print("-" * 67)
-    # ==========================================
 
-    # จากนั้นระบบก็จะทำการค้นหาแบบทำ Query Expansion ตามปกติ
     search_results = search_songs(clean_query, top_n=N)
     if search_results:
         print(f"\n  เจอเเล้ว!! {len(search_results)} เพลงที่ตรงกับคำค้นหา (หลังทำ Expansion) ===> '{user_query}' ")
-        # ... (โค้ดแสดงผลและประเมินผลตามเดิม) ...
+
 
     search_results = search_songs(clean_query, top_n=N)
     if search_results:
